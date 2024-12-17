@@ -1,4 +1,4 @@
-< Geliştirme devam ediyor, henüz çalışan bir sürüm değildir  >
+# < Geliştirme devam ediyor, henüz çalışan bir sürüm değildir  >
 
 # LinkedIn Job Filter Chrome Extension
 

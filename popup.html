@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>LinkedIn Jobs Filter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 10px; width: 300px; }
+        h3, h4 { margin: 0 0 5px; font-size: 16px; }
+        input, select { width: 100%; margin-bottom: 5px; padding: 5px; }
+        button { width: 100%; margin-bottom: 10px; padding: 5px; cursor: pointer; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h3>Filtrelenmiş İş İlanları</h3>
+    <div>
+        <h4>Anahtar Kelimeler</h4>
+        <input id="keyword-input" type="text" placeholder="Anahtar kelimeleri virgülle ayırın...">
+        
+        <h4>Lokasyon</h4>
+        <input id="location-input" type="text" placeholder="Örnek: Remote, İstanbul...">
+        
+        <h4>Şirket Adı</h4>
+        <input id="company-input" type="text" placeholder="Şirket adlarını virgülle ayırın...">
+        
+        <h4>Tarama Hızı (saniye)</h4>
+        <select id="speed-input">
+            <option value="2000">Yavaş (2 saniye)</option>
+            <option value="5000" selected>Orta (5 saniye)</option>
+            <option value="8000">Çok Yavaş (8 saniye)</option>
+        </select>
+
+        <button id="save-filters">Filtreleri Kaydet</button>
+        <button id="download-csv">CSV Olarak İndir</button>
+        <button id="download-json">JSON Olarak İndir</button>
+    </div>
+    <ul id="job-list">Yükleniyor...</ul>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+< Geliştirme devam ediyor, henüz çalışan bir sürüm değildir  >
+
 # LinkedIn Job Filter Chrome Extension
 
 LinkedIn'deki iş ilanlarını filtrelemek için kullanabileceğiniz bir Chrome tarayıcı eklentisi. Kullanıcı belirli **anahtar kelimelere**, **lokasyona** ve **şirket isimlerine** göre iş ilanlarını filtreler. Ayrıca, insan benzeri davranış sergileyerek LinkedIn'in bot algılama mekanizmasını aşar.

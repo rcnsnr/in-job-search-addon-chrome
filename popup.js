@@ -17,6 +17,7 @@ function initPopup() {
   const profileInput = document.getElementById("profile-input");
   const remoteOnlyInput = document.getElementById("remote-only");
   const maxAgeInput = document.getElementById("max-age-input");
+  const companyOriginInput = document.getElementById("company-origin");
   const saveButton = document.getElementById("save-filters");
   const downloadCSVButton = document.getElementById("download-csv");
   const downloadJSONButton = document.getElementById("download-json");
@@ -32,6 +33,7 @@ function initPopup() {
     industryInput,
     keywordWhitelistInput,
     keywordBlacklistInput,
+    companyOriginInput,
     minSalaryInput,
     profileInput,
     remoteOnlyInput,
@@ -50,6 +52,7 @@ function initPopup() {
       industryInput,
       keywordWhitelistInput,
       keywordBlacklistInput,
+      companyOriginInput,
       minSalaryInput,
       profileInput,
       remoteOnlyInput,
@@ -110,6 +113,7 @@ function initPopup() {
         industryInput,
         keywordWhitelistInput,
         keywordBlacklistInput,
+        companyOriginInput,
         minSalaryInput,
         profileInput,
         remoteOnlyInput,
@@ -177,6 +181,7 @@ function collectFilters(
   industryInput,
   keywordWhitelistInput,
   keywordBlacklistInput,
+  companyOriginInput,
   minSalaryInput,
   profileInput,
   remoteOnlyInput,
@@ -195,6 +200,7 @@ function collectFilters(
     industry: industryInput.value.trim(),
     keywordWhitelist: parseKeywordListValue(keywordWhitelistInput.value),
     keywordBlacklist: parseKeywordListValue(keywordBlacklistInput.value),
+    companyOrigin: companyOriginInput.value,
     minSalary: Number.isNaN(parsedMinSalary) ? null : parsedMinSalary,
     profile: profileInput.value,
     remoteOnly: remoteOnlyInput.checked,
@@ -210,6 +216,7 @@ function loadFilters({
   industryInput,
   keywordWhitelistInput,
   keywordBlacklistInput,
+  companyOriginInput,
   minSalaryInput,
   profileInput,
   remoteOnlyInput,
@@ -237,6 +244,7 @@ function loadFilters({
     keywordWhitelistInput.value = formatKeywordTextarea(sanitizedFromStorage.whitelist);
     keywordBlacklistInput.value = formatKeywordTextarea(sanitizedFromStorage.blacklist);
     minSalaryInput.value = filters.minSalary ?? "";
+    companyOriginInput.value = filters.companyOrigin ?? "any";
     profileInput.value = filters.profile ?? inferProfileFromLegacySpeed(filters.speed);
     remoteOnlyInput.checked = Boolean(filters.remoteOnly);
     maxAgeInput.value = filters.maxAgeDays ?? "";

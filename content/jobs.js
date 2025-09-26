@@ -50,6 +50,29 @@
     });
   }
 
+  function matchCompanyOrigin(origin, filterValue) {
+    const normalizedFilter = filterValue ?? "any";
+    if (normalizedFilter === "any" || !normalizedFilter) {
+      return true;
+    }
+
+    const effectiveOrigin = origin ?? "direct";
+
+    if (normalizedFilter === "direct") {
+      return effectiveOrigin === "direct";
+    }
+
+    if (normalizedFilter === "outsourcing") {
+      return effectiveOrigin === "outsourcing";
+    }
+
+    if (normalizedFilter === "exclude-outsourcing") {
+      return effectiveOrigin !== "outsourcing";
+    }
+
+    return true;
+  }
+
   function buildTextPool(job) {
     const pool = new Set();
 
@@ -81,8 +104,56 @@
     pushText(job.description);
     pushText(job.workplaceType);
     pushText(job.location);
+    pushText(job.company);
 
     return pool;
+  }
+
+  function classifyCompanyOrigin(job) {
+    const signals = {
+      outsourcing: [],
+    };
+
+    const normalizedCompany = normalizeWhitespace(job.company ?? "").toLowerCase();
+    const normalizedSlug = normalizeWhitespace(job.companySlug ?? "").toLowerCase();
+    const textPool = buildTextPool(job);
+
+    OUTSOURCING_COMPANY_KEYWORDS.forEach((keyword) => {
+      if (!keyword) {
+        return;
+      }
+
+      if (normalizedCompany.includes(keyword)) {
+        signals.outsourcing.push(`company:${keyword}`);
+      } else if (normalizedSlug && normalizedSlug.includes(keyword.replace(/\s+/g, ""))) {
+        signals.outsourcing.push(`slug:${keyword}`);
+      } else if (textPool.has(keyword)) {
+        signals.outsourcing.push(`text:${keyword}`);
+      }
+    });
+
+    OUTSOURCING_PHRASES.forEach((phrase) => {
+      if (!phrase) {
+        return;
+      }
+
+      const normalizedPhrase = normalizeWhitespace(phrase).toLowerCase();
+      if (textPool.has(normalizedPhrase)) {
+        signals.outsourcing.push(`phrase:${normalizedPhrase}`);
+      }
+    });
+
+    if (signals.outsourcing.length > 0) {
+      return {
+        origin: "outsourcing",
+        signals,
+      };
+    }
+
+    return {
+      origin: "direct",
+      signals,
+    };
   }
 
   window.__linkedInJobScraperInitialized = true;
@@ -119,6 +190,30 @@
     "hybrid",
     "shift",
     "travel required",
+  ];
+  const OUTSOURCING_COMPANY_KEYWORDS = [
+    "consult",
+    "consultancy",
+    "consulting",
+    "outsourcing",
+    "staffing",
+    "recruitment",
+    "recruiting",
+    "hr",
+    "human resources",
+    "talent acquisition",
+    "agency",
+    "bpo",
+  ];
+  const OUTSOURCING_PHRASES = [
+    "hiring for our client",
+    "on behalf of our client",
+    "on behalf of",
+    "for our customer",
+    "third party",
+    "outsourced",
+    "contract staffing",
+    "body shop",
   ];
 
   const EXPERIENCE_SYNONYM_MAP = buildSynonymMap(EXPERIENCE_SYNONYM_GROUPS);
@@ -166,7 +261,7 @@
 
     const description = extractDescription(card);
 
-    return {
+    const baseJob = {
       title: titleElement?.textContent?.trim() ?? "",
       company: companyElement?.textContent?.trim() ?? "",
       location: locationElement?.textContent?.trim() ?? "",
@@ -181,6 +276,13 @@
       companyId,
       description,
     };
+    const originInfo = classifyCompanyOrigin(baseJob);
+
+    return {
+      ...baseJob,
+      companyOrigin: originInfo.origin,
+      companyOriginSignals: originInfo.signals,
+    };
   }
 
   function passesFilters(job, filters) {
@@ -194,8 +296,9 @@
     const salaryPass = matchMinSalary(job, filters.minSalary);
     const whitelistPass = matchWhitelist(job, filters.keywordWhitelist);
     const blacklistPass = matchBlacklist(job, filters.keywordBlacklist);
+    const originPass = matchCompanyOrigin(job.companyOrigin, filters.companyOrigin);
 
-    return keywordPass && locationPass && companyPass && remotePass && agePass && experiencePass && industryPass && salaryPass && whitelistPass && blacklistPass;
+    return keywordPass && locationPass && companyPass && remotePass && agePass && experiencePass && industryPass && salaryPass && whitelistPass && blacklistPass && originPass;
   }
 
   function matchKeywords(title, keywords) {

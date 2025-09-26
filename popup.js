@@ -10,6 +10,8 @@ function initPopup() {
   const companyInput = document.getElementById("company-input");
   const experienceInput = document.getElementById("experience-input");
   const industryInput = document.getElementById("industry-input");
+  const keywordWhitelistInput = document.getElementById("keyword-whitelist");
+  const keywordBlacklistInput = document.getElementById("keyword-blacklist");
   const minSalaryInput = document.getElementById("min-salary-input");
   const profileInput = document.getElementById("profile-input");
   const remoteOnlyInput = document.getElementById("remote-only");
@@ -27,6 +29,8 @@ function initPopup() {
     companyInput,
     experienceInput,
     industryInput,
+    keywordWhitelistInput,
+    keywordBlacklistInput,
     minSalaryInput,
     profileInput,
     remoteOnlyInput,
@@ -43,6 +47,8 @@ function initPopup() {
       companyInput,
       experienceInput,
       industryInput,
+      keywordWhitelistInput,
+      keywordBlacklistInput,
       minSalaryInput,
       profileInput,
       remoteOnlyInput,
@@ -75,6 +81,8 @@ function initPopup() {
     companyInput,
     experienceInput,
     industryInput,
+    keywordWhitelistInput,
+    keywordBlacklistInput,
     minSalaryInput,
     profileInput,
     remoteOnlyInput,
@@ -87,6 +95,8 @@ function initPopup() {
         companyInput,
         experienceInput,
         industryInput,
+        keywordWhitelistInput,
+        keywordBlacklistInput,
         minSalaryInput,
         profileInput,
         remoteOnlyInput,
@@ -97,12 +107,54 @@ function initPopup() {
   });
 }
 
+function parseKeywordListValue(rawValue) {
+  if (!rawValue) {
+    return [];
+  }
+
+  const items = rawValue
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const seen = new Set();
+  const result = [];
+
+  items.forEach((item) => {
+    const key = item.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(item);
+    }
+  });
+
+  return result;
+}
+
+function formatKeywordTextarea(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.join("\n");
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "";
+}
+
 function collectFilters(
   keywordInput,
   locationInput,
   companyInput,
   experienceInput,
   industryInput,
+  keywordWhitelistInput,
+  keywordBlacklistInput,
   minSalaryInput,
   profileInput,
   remoteOnlyInput,
@@ -119,6 +171,8 @@ function collectFilters(
     company: companyInput.value.trim(),
     experience: experienceInput.value.trim(),
     industry: industryInput.value.trim(),
+    keywordWhitelist: parseKeywordListValue(keywordWhitelistInput.value),
+    keywordBlacklist: parseKeywordListValue(keywordBlacklistInput.value),
     minSalary: Number.isNaN(parsedMinSalary) ? null : parsedMinSalary,
     profile: profileInput.value,
     remoteOnly: remoteOnlyInput.checked,
@@ -132,6 +186,8 @@ function loadFilters({
   companyInput,
   experienceInput,
   industryInput,
+  keywordWhitelistInput,
+  keywordBlacklistInput,
   minSalaryInput,
   profileInput,
   remoteOnlyInput,
@@ -151,6 +207,8 @@ function loadFilters({
     companyInput.value = filters.company ?? "";
     experienceInput.value = filters.experience ?? "";
     industryInput.value = filters.industry ?? "";
+    keywordWhitelistInput.value = formatKeywordTextarea(filters.keywordWhitelist);
+    keywordBlacklistInput.value = formatKeywordTextarea(filters.keywordBlacklist);
     minSalaryInput.value = filters.minSalary ?? "";
     profileInput.value = filters.profile ?? inferProfileFromLegacySpeed(filters.speed);
     remoteOnlyInput.checked = Boolean(filters.remoteOnly);

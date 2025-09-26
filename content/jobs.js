@@ -4,6 +4,87 @@
     return;
   }
 
+  function extractDescription(card) {
+    const descriptionElement = card.querySelector(".job-card-list__description");
+    const insightElement = card.querySelector('[data-test-description]');
+    const fallbackElement = card.querySelector(".job-card-container__main-content");
+
+    const texts = [];
+    if (descriptionElement?.textContent) {
+      texts.push(descriptionElement.textContent);
+    }
+    if (insightElement?.textContent) {
+      texts.push(insightElement.textContent);
+    }
+    if (fallbackElement?.textContent) {
+      texts.push(fallbackElement.textContent);
+    }
+    if (texts.length === 0 && card?.textContent) {
+      texts.push(card.textContent);
+    }
+
+    return normalizeWhitespace(texts.join("\n"));
+  }
+
+  function matchWhitelist(job, whitelist) {
+    if (!Array.isArray(whitelist) || whitelist.length === 0) {
+      return true;
+    }
+
+    const textPool = buildTextPool(job);
+    return whitelist.some((item) => {
+      const normalized = normalizeWhitespace(item).toLowerCase();
+      return textPool.has(normalized);
+    });
+  }
+
+  function matchBlacklist(job, blacklist) {
+    if (!Array.isArray(blacklist) || blacklist.length === 0) {
+      return true;
+    }
+
+    const textPool = buildTextPool(job);
+    return blacklist.every((item) => {
+      const normalized = normalizeWhitespace(item).toLowerCase();
+      return !textPool.has(normalized);
+    });
+  }
+
+  function buildTextPool(job) {
+    const pool = new Set();
+
+    const pushText = (value) => {
+      if (!value) {
+        return;
+      }
+
+      const normalized = normalizeWhitespace(value).toLowerCase();
+      if (normalized) {
+        pool.add(normalized);
+      }
+
+      const tokens = tokenize(value);
+      tokens.forEach((token) => {
+        pool.add(token);
+      });
+
+      const maxWindow = Math.min(4, tokens.length);
+      for (let size = 2; size <= maxWindow; size += 1) {
+        const windows = slidingWindows(tokens, size);
+        windows.forEach((window) => {
+          pool.add(window);
+        });
+      }
+    };
+
+    pushText(job.title);
+    pushText(job.description);
+    pushText(job.workplaceType);
+    pushText(job.location);
+
+    return pool;
+  }
+
   window.__linkedInJobScraperInitialized = true;
 
   const FUZZY_THRESHOLD = 0.72;
@@ -18,12 +99,28 @@
   ];
   const EXPERIENCE_SYNONYM_GROUPS = [
     ["entry level", "junior", "associate"],
-    ["mid level", "mid-level", "mid", "intermediate"],
     ["senior", "lead", "principal"],
     ["director", "executive"],
   ];
 
   const KEYWORD_SYNONYM_MAP = buildSynonymMap(KEYWORD_SYNONYM_GROUPS);
+  const REMOTE_POSITIVE_HINTS = [
+    "remote",
+    "uzaktan",
+    "home office",
+    "fully remote",
+    "remote-first",
+    "work from home",
+  ];
+  const REMOTE_NEGATIVE_HINTS = [
+    "on-site",
+    "onsite",
+    "ofiste",
+    "hybrid",
+    "shift",
+    "travel required",
+  ];
+
   const EXPERIENCE_SYNONYM_MAP = buildSynonymMap(EXPERIENCE_SYNONYM_GROUPS);
 
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -67,6 +164,8 @@
     const companyId = extractCompanyIdFromUrn(companyUrn);
     const companySlug = extractCompanySlugFromUrl(companyUrl);
 
+    const description = extractDescription(card);
+
     return {
       title: titleElement?.textContent?.trim() ?? "",
       company: companyElement?.textContent?.trim() ?? "",
@@ -80,6 +179,7 @@
       companyUrl,
       companySlug,
       companyId,
+      description,
     };
   }
 
@@ -92,8 +192,10 @@
     const experiencePass = matchExperience(job.experienceLevel, filters.experience);
     const industryPass = matchIndustry(job.industries, filters.industry);
     const salaryPass = matchMinSalary(job, filters.minSalary);
+    const whitelistPass = matchWhitelist(job, filters.keywordWhitelist);
+    const blacklistPass = matchBlacklist(job, filters.keywordBlacklist);
 
-    return keywordPass && locationPass && companyPass && remotePass && agePass && experiencePass && industryPass && salaryPass;
+    return keywordPass && locationPass && companyPass && remotePass && agePass && experiencePass && industryPass && salaryPass && whitelistPass && blacklistPass;
   }
 
   function matchKeywords(title, keywords) {
@@ -141,6 +243,15 @@
 
     const location = job.location?.toLowerCase?.() ?? "";
     if (location.includes("remote") || location.includes("uzaktan")) {
+      return true;
+    }
+
+    const textPool = buildTextPool(job);
+    if (REMOTE_NEGATIVE_HINTS.some((hint) => textPool.has(hint))) {
+      return false;
+    }
+
+    if (REMOTE_POSITIVE_HINTS.some((hint) => textPool.has(hint))) {
       return true;
     }
 

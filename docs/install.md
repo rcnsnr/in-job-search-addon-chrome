@@ -18,7 +18,6 @@ Bu doküman, LinkedIn Gelişmiş İş Zekâsı uzantısının yerel geliştirme 
    cd in-job-search-addon-chrome
    ```
 
-
 2. Gerekli yapılandırma dosyalarının mevcut olduğundan emin olun (`manifest.json`, `service_worker.js`, `content/jobs.js`, `popup.html`, `popup.js`).
 3. Gerekirse `docs/` altındaki referans dokümanları gözden geçirerek hızlı başlangıç yapın.
 

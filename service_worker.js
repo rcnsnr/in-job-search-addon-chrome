@@ -26,6 +26,10 @@ const ORGANIZATION_DASH_QUERY_ID = "voyagerOrganizationDashCompanies.1164a39ce57
 const LINKEDIN_GRAPHQL_ENDPOINT = "https://www.linkedin.com/voyager/api/graphql";
 const PREMIUM_INSIGHTS_STORAGE_PREFIX = "premiumInsights:";
 const COMPANY_ID_CACHE_PREFIX = "premiumCompanyId:";
+const PREMIUM_INSIGHTS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const COMPANY_ID_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const STORAGE_USAGE_THRESHOLD_BYTES = Math.floor(4.5 * 1024 * 1024);
+const STORAGE_USAGE_TARGET_BYTES = Math.floor(4 * 1024 * 1024);
 
 const jobQueue = [];
 let activeJob = null;
@@ -325,6 +329,13 @@ async function schedulePremiumInsights(jobs, profileKey) {
   const delayRange = PROFILE_SETTINGS[profileKey]?.delayRangeMs ?? [4000, 6000];
 
   for (const company of eligible) {
+    const cacheHit = await hasFreshPremiumInsights(company.key);
+    if (cacheHit) {
+      processedSet.add(company.key);
+      telemetry.premiumCompanies = Array.from(processedSet);
+      continue;
+    }
+
     try {
       const fetched = await fetchAndStorePremiumInsights(company);
       if (!fetched) {
@@ -456,6 +467,7 @@ async function fetchAndStorePremiumInsights(company) {
     source: "premium",
     metrics,
     raw,
+    expiresAt: Date.now() + PREMIUM_INSIGHTS_TTL_MS,
   });
 
   return true;
@@ -473,8 +485,9 @@ async function resolveCompanyId(company) {
 
   const cacheKey = `${COMPANY_ID_CACHE_PREFIX}${slug}`;
   const cached = await chrome.storage.local.get([cacheKey]);
-  if (cached?.[cacheKey]) {
-    return String(cached[cacheKey]);
+  const cachedEntry = cached?.[cacheKey];
+  if (cachedEntry && !isExpired(cachedEntry.expiresAt, COMPANY_ID_TTL_MS)) {
+    return String(cachedEntry.value);
   }
 
   const variablesParam = `(universalName:${slug})`;
@@ -497,7 +510,12 @@ async function resolveCompanyId(company) {
   const resolvedId = extractCompanyIdFromUrn(companyUrn);
 
   if (resolvedId) {
-    await chrome.storage.local.set({ [cacheKey]: resolvedId });
+    await chrome.storage.local.set({
+      [cacheKey]: {
+        value: resolvedId,
+        expiresAt: Date.now() + COMPANY_ID_TTL_MS,
+      },
+    });
     return resolvedId;
   }
 
@@ -773,6 +791,26 @@ function safeString(value) {
   }
 
   return "";
+}
+
+async function hasFreshPremiumInsights(companyKey) {
+  if (!companyKey) {
+    return false;
+  }
+
+  const key = `${PREMIUM_INSIGHTS_STORAGE_PREFIX}${companyKey}`;
+  const stored = await chrome.storage.local.get([key]);
+  const entry = stored?.[key];
+  if (!entry) {
+    return false;
+  }
+
+  if (isExpired(entry.expiresAt, PREMIUM_INSIGHTS_TTL_MS)) {
+    await chrome.storage.local.remove(key);
+    return false;
+  }
+
+  return true;
 }
 
 function createTelemetryState() {

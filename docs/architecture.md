@@ -21,11 +21,13 @@
 - Oturum, hata loglama ve `chrome.storage` üzerinden kalıcı durum yönetimi.
 - Günlük bazda telemetri üretimi (`processedToday`, `premiumCallsToday`, kalan kota) ve `chrome.storage.local` altında saklama.
 - Premium Insights kuyruğu: Filtrelenmiş ilanlardan benzersiz şirket çıkarımı, günlük 50 istek sınırı, CSRf token yönetimi ve GraphQL endpointleri ile veri saklama.
+- Anahtar kelime beyaz/siyah listeleri için popup üzerinden düzenleme, `content/jobs.js` seviyesinde başlık/açıklama taramasıyla hybrid/uzaktan sinyallerini filtreleme.
 - İçerik betiklerinin yeniden enjekte edilmesi gerektiğinde `chrome.scripting.executeScript` ile kurtarma.
 
 ### Content Script Modülleri
 
 - `jobsScraper`: LinkedIn Jobs sayfasında ilan kartlarını çıkarır, temel filtreleme ön işlemini uygular (uzaktan, ilan yaşı, işyeri tipi gibi gelişmiş kriterler dahil).
+- Beyaz/Siyah liste eşleşmeleri ve uzaktan çalışma sinyallerini başlık/açıklama/kart metninden toplayarak karar verir.
 - `companyInsightsScraper`: Şirket sayfalarında Premium metrikleri (örn. `Median employee tenure`) toplar; oturum gereksinimleri için yardım merkezi incelemesi yapılacak.
 - `profileSampler` (opsiyonel): Çalışan profili örneklemesi, takım yapısı analizleri.
 - DOM gözlemleri için `MutationObserver` ve gecikmeli kaydırma simülasyonları.

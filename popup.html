@@ -7,7 +7,8 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 10px; width: 320px; }
         h3, h4 { margin: 0 0 6px; font-size: 16px; }
-        input, select { width: 100%; margin-bottom: 8px; padding: 6px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; margin-bottom: 8px; padding: 6px; box-sizing: border-box; }
+        textarea { resize: vertical; min-height: 72px; }
         button { width: 100%; margin-bottom: 8px; padding: 6px; cursor: pointer; }
         ul { list-style: none; padding: 0; margin: 10px 0 0; max-height: 220px; overflow-y: auto; }
         li { margin: 6px 0; font-size: 14px; }
@@ -44,6 +45,16 @@
         <div class="fieldset">
             <h4>Endüstri</h4>
             <input id="industry-input" type="text" placeholder="Örnek: Yazılım, Finans...">
+        </div>
+
+        <div class="fieldset">
+            <h4>Anahtar Kelime Beyaz Liste</h4>
+            <textarea id="keyword-whitelist" rows="3" placeholder="Her satıra bir kelime"></textarea>
+        </div>
+
+        <div class="fieldset">
+            <h4>Anahtar Kelime Siyah Liste</h4>
+            <textarea id="keyword-blacklist" rows="3" placeholder="Her satıra bir kelime"></textarea>
         </div>
 
         <div class="fieldset">

@@ -3,6 +3,9 @@
 
 ## 1. LinkedIn DOM ve Premium Veri Analizi
 
+- **Resmi Kaynaklar**
+  - [Company Search API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/company-search?view=li-lms-2025-09) dökümantasyonu `industryV2`, `networkDegree`, `companySize`, `followersSize` gibi filtrelerin resmi tanımlarını ve geçerli değer kümelerini sağlamaktadır.
+  - Premium içgörü alanlarına dair kamuya açık içerikler LinkedIn Help Center üzerinde oturum gerektirdiğinden, oturum açılmış inceleme gereksinimi kayda alındı.
 - **Jobs Sayfası**
   - Kart yapısı, lazy-load davranışı, sayfalama.
   - Deneyim seviyesi, iş fonksiyonu, sektör gibi filtre alanlarının DOM referansları.
@@ -23,6 +26,10 @@
 
 ## 3. Chrome/Brave Manifest V3 Kısıtları
 
+- **Resmi Kaynaklar**
+  - [Manifest V3 geçiş rehberi](https://developer.chrome.com/docs/extensions/develop/migrate/) kalıcı arka plan sayfalarının `service_worker` lehine kaldırıldığını ve uzaktan barındırılan kodun yasaklandığını doğrular.
+  - [Service worker konsepti](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/) ile [servis işçisi yaşam döngüsü](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle/) belgeleri, `idle` durum yönetimi ile `chrome.alarms` gibi tetikleyicilerin kullanımını resmi olarak tarif eder.
+  - [Brave SSS](https://brave.com/faq/#extensions) Brave’in Chromium tabanlı olduğunu ve Chrome uzantı API’lerinin desteklendiğini belirtilir; bu nedenle Manifest V3 gereksinimleri Brave’de de birebir uygulanır.
 - **Service Worker Yaşam Döngüsü**
   - Uykuya geçme/uyanma, kalıcı görevlerin planlanması (`chrome.alarms`).
 - **Offscreen Documents**

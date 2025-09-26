@@ -47,6 +47,10 @@
 - **Arama şablonları**: Ön tanımlı + kullanıcı tanımlı şablonlar, `chrome.storage` üzerinde yönetim.
 - **Brave testleri**: Brave üzerinde Jobs sayfası tarama senaryoları, performans ölçümleri.
 - **Çıktılar**: Veri çıkarım modülleri, filtreleme test raporu.
+  - [x] Uzaktan pozisyon ve ilan yaşı filtreleri (`popup.js`, `content/jobs.js`).
+  - [x] İşyeri tipi sınıflandırması (`Remote`, `Hybrid`, `On-site`).
+  - [x] Maaş/deneyim/endüstri alanı çıkarımı.
+  - [ ] Fuzzy matching destekli gelişmiş filtre motoru.
 
 ### Faz 3 – Premium Veri Entegrasyonu (4 Hafta)
 

@@ -18,6 +18,8 @@
         .status--empty { background: #e3f2fd; color: #1565c0; }
         .job-link { color: #0a66c2; text-decoration: none; }
         .job-link:hover { text-decoration: underline; }
+        .checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 8px; }
+        .fieldset { margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -25,19 +27,39 @@
     <div>
         <h4>Anahtar Kelimeler</h4>
         <input id="keyword-input" type="text" placeholder="Anahtar kelimeleri virgülle ayırın...">
-        
         <h4>Lokasyon</h4>
         <input id="location-input" type="text" placeholder="Örnek: Remote, İstanbul...">
         
         <h4>Şirket Adı</h4>
         <input id="company-input" type="text" placeholder="Şirket adlarını virgülle ayırın...">
         
-        <h4>Tarama Hızı (saniye)</h4>
-        <select id="speed-input">
-            <option value="2000">Yavaş (2 saniye)</option>
-            <option value="5000" selected>Orta (5 saniye)</option>
-            <option value="8000">Çok Yavaş (8 saniye)</option>
+        <div class="fieldset">
+            <h4>Deneyim Seviyesi</h4>
+            <input id="experience-input" type="text" placeholder="Örnek: Entry level, Mid-senior...">
+        </div>
+
+        <div class="fieldset">
+            <h4>Endüstri</h4>
+            <input id="industry-input" type="text" placeholder="Örnek: Yazılım, Finans...">
+        </div>
+
+        <div class="fieldset">
+            <h4>Minimum Maaş (para birimi dahil)</h4>
+            <input id="min-salary-input" type="number" min="0" step="100" placeholder="Örnek: 50000">
+        </div>
+        <h4>Hız Profili</h4>
+        <select id="profile-input">
+            <option value="conservative">Konservatif (6-10 sn)</option>
+            <option value="balanced" selected>Dengeli (4-6 sn)</option>
+            <option value="aggressive">Agresif (2-4 sn)</option>
         </select>
+
+        <label class="checkbox">
+            <input id="remote-only" type="checkbox">
+            Yalnızca uzaktan pozisyonlar
+        </label>
+        <h4>İlan Yaşı (gün)</h4>
+        <input id="max-age-input" type="number" min="0" placeholder="Örnek: 7 (boş = limitsiz)">
 
         <button id="save-filters">Filtreleri Kaydet ve Tara</button>
         <button id="download-csv">CSV Olarak İndir</button>

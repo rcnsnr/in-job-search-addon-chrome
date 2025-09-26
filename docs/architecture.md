@@ -5,9 +5,9 @@
 
 - **Tarayıcı Uyumluluğu**: Chrome ve Chromium tabanlı Brave tarayıcılarında Manifest V3 gereksinimlerine uyumlu.
 - **Bileşenler**:
-  - `service_worker` (arka plan): Görev planlayıcı, hız denetimi, iş kuyruğu yönetimi.
-  - `content` betikleri: LinkedIn sayfalarından veri çıkarımı, DOM gözlemi.
-  - `popup` ve `options` arayüzleri: Kullanıcı etkileşimi, şablon yönetimi.
+  - `service_worker` (arka plan): Görev planlayıcı, hız profili uygulaması, telemetri ve iş kuyruğu yönetimi.
+  - `content` betikleri: LinkedIn sayfalarından veri çıkarımı, DOM gözlemi, işyeri tipi sınıflandırması.
+  - `popup` ve `options` arayüzleri: Kullanıcı etkileşimi, şablon yönetimi, profil seçimi.
   - `storage` katmanı: `chrome.storage.local`, IndexedDB cache.
 - **İletişim**: `chrome.runtime` mesaj kanalı ile üçlü iletişim (`popup ↔ service_worker ↔ content`).
 
@@ -17,12 +17,13 @@
 
 - Görev kuyruğu ve durum makinesi yönetimi (`chrome.alarms`, `chrome.runtime` olayları — [kaynak](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle/)).
 - Throttling stratejileri, rastgele gecikme üretimi, hız profili seçimi.
+- Profil bazlı gecikme (`conservative`, `balanced`, `aggressive`) ve batch sonrası cooldown.
 - Oturum, hata loglama ve `chrome.storage` üzerinden kalıcı durum yönetimi.
 - İçerik betiklerinin yeniden enjekte edilmesi gerektiğinde `chrome.scripting.executeScript` ile kurtarma.
 
 ### Content Script Modülleri
 
-- `jobsScraper`: LinkedIn Jobs sayfasında ilan kartlarını çıkarır, temel filtreleme ön işlemini uygular.
+- `jobsScraper`: LinkedIn Jobs sayfasında ilan kartlarını çıkarır, temel filtreleme ön işlemini uygular (uzaktan, ilan yaşı, işyeri tipi gibi gelişmiş kriterler dahil).
 - `companyInsightsScraper`: Şirket sayfalarında Premium metrikleri (örn. `Median employee tenure`) toplar; oturum gereksinimleri için yardım merkezi incelemesi yapılacak.
 - `profileSampler` (opsiyonel): Çalışan profili örneklemesi, takım yapısı analizleri.
 - DOM gözlemleri için `MutationObserver` ve gecikmeli kaydırma simülasyonları.
@@ -30,7 +31,7 @@
 ### Popup UI
 
 - Anlık filtre uygulama, sonuç görselleştirme.
-- Arama şablonu seçimi ve oluşturma.
+- Arama şablonu seçimi, hız profili ve uzaktan/yaş filtreleri dahil kullanıcı parametrelerinin yönetimi.
 - Veri dışa aktarımları tetikleme.
 
 ### Options UI

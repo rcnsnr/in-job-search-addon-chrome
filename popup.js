@@ -8,17 +8,43 @@ function initPopup() {
   const keywordInput = document.getElementById("keyword-input");
   const locationInput = document.getElementById("location-input");
   const companyInput = document.getElementById("company-input");
-  const speedInput = document.getElementById("speed-input");
+  const experienceInput = document.getElementById("experience-input");
+  const industryInput = document.getElementById("industry-input");
+  const minSalaryInput = document.getElementById("min-salary-input");
+  const profileInput = document.getElementById("profile-input");
+  const remoteOnlyInput = document.getElementById("remote-only");
+  const maxAgeInput = document.getElementById("max-age-input");
   const saveButton = document.getElementById("save-filters");
   const downloadCSVButton = document.getElementById("download-csv");
   const downloadJSONButton = document.getElementById("download-json");
   const statusBadge = document.getElementById("status");
   const jobList = document.getElementById("job-list");
 
-  loadFilters({ keywordInput, locationInput, companyInput, speedInput, statusBadge });
+  loadFilters({
+    keywordInput,
+    locationInput,
+    companyInput,
+    experienceInput,
+    industryInput,
+    minSalaryInput,
+    profileInput,
+    remoteOnlyInput,
+    maxAgeInput,
+    statusBadge,
+  });
 
   saveButton.addEventListener("click", () => {
-    const filters = collectFilters(keywordInput, locationInput, companyInput, speedInput);
+    const filters = collectFilters(
+      keywordInput,
+      locationInput,
+      companyInput,
+      experienceInput,
+      industryInput,
+      minSalaryInput,
+      profileInput,
+      remoteOnlyInput,
+      maxAgeInput,
+    );
     storeFilters(filters, statusBadge);
     requestJobScan(filters, statusBadge, jobList);
   });
@@ -40,24 +66,72 @@ function initPopup() {
   });
 
   // Manuel yenilemeler için tarama hızını değiştirdiğinde otomatik kaydet.
-  [keywordInput, locationInput, companyInput, speedInput].forEach((element) => {
+  [
+    keywordInput,
+    locationInput,
+    companyInput,
+    profileInput,
+    remoteOnlyInput,
+    maxAgeInput,
+  ].forEach((element) => {
     element.addEventListener("change", () => {
-      const filters = collectFilters(keywordInput, locationInput, companyInput, speedInput);
+      const filters = collectFilters(
+        keywordInput,
+        locationInput,
+        companyInput,
+        experienceInput,
+        industryInput,
+        minSalaryInput,
+        profileInput,
+        remoteOnlyInput,
+        maxAgeInput,
+      );
       storeFilters(filters, statusBadge, false);
     });
   });
 }
 
-function collectFilters(keywordInput, locationInput, companyInput, speedInput) {
+function collectFilters(
+  keywordInput,
+  locationInput,
+  companyInput,
+  experienceInput,
+  industryInput,
+  minSalaryInput,
+  profileInput,
+  remoteOnlyInput,
+  maxAgeInput,
+) {
+  const maxAgeRaw = maxAgeInput.value.trim();
+  const parsedMaxAge = Number.parseInt(maxAgeRaw, 10);
+  const minSalaryRaw = minSalaryInput.value.trim();
+  const parsedMinSalary = Number.parseInt(minSalaryRaw, 10);
+
   return {
     keywords: keywordInput.value.trim(),
     location: locationInput.value.trim(),
     company: companyInput.value.trim(),
-    speed: Number.parseInt(speedInput.value, 10) || 5000,
+    experience: experienceInput.value.trim(),
+    industry: industryInput.value.trim(),
+    minSalary: Number.isNaN(parsedMinSalary) ? null : parsedMinSalary,
+    profile: profileInput.value,
+    remoteOnly: remoteOnlyInput.checked,
+    maxAgeDays: Number.isNaN(parsedMaxAge) ? null : parsedMaxAge,
   };
 }
 
-function loadFilters({ keywordInput, locationInput, companyInput, speedInput, statusBadge }) {
+function loadFilters({
+  keywordInput,
+  locationInput,
+  companyInput,
+  experienceInput,
+  industryInput,
+  minSalaryInput,
+  profileInput,
+  remoteOnlyInput,
+  maxAgeInput,
+  statusBadge,
+}) {
   chrome.storage.local.get(["filters"], (result) => {
     if (chrome.runtime.lastError) {
       console.error("Filtreler yüklenirken hata oluştu", chrome.runtime.lastError);
@@ -69,9 +143,12 @@ function loadFilters({ keywordInput, locationInput, companyInput, speedInput, st
     keywordInput.value = filters.keywords ?? "";
     locationInput.value = filters.location ?? "";
     companyInput.value = filters.company ?? "";
-    if (filters.speed) {
-      speedInput.value = String(filters.speed);
-    }
+    experienceInput.value = filters.experience ?? "";
+    industryInput.value = filters.industry ?? "";
+    minSalaryInput.value = filters.minSalary ?? "";
+    profileInput.value = filters.profile ?? inferProfileFromLegacySpeed(filters.speed);
+    remoteOnlyInput.checked = Boolean(filters.remoteOnly);
+    maxAgeInput.value = filters.maxAgeDays ?? "";
 
     setStatus(statusBadge, "ready", "Hazır");
   });
@@ -138,6 +215,13 @@ function renderJobs(jobList, jobs) {
     const title = job.title || "İsimsiz ilan";
     const company = job.company ? ` • ${job.company}` : "";
     const location = job.location ? ` • ${job.location}` : "";
+    const workplace = job.workplaceType ? ` • ${job.workplaceType}` : "";
+    const posted = job.postedAt ? ` • ${formatRelativeDate(job.postedAt)}` : "";
+    const experience = job.experienceLevel ? ` • ${job.experienceLevel}` : "";
+    const industries = Array.isArray(job.industries) && job.industries.length > 0
+      ? ` • ${job.industries.join(" / ")}`
+      : "";
+    const salary = job.salaryText ? ` • ${job.salaryText}` : "";
 
     if (job.link) {
       const link = document.createElement("a");
@@ -152,7 +236,7 @@ function renderJobs(jobList, jobs) {
     }
 
     const meta = document.createElement("span");
-    meta.textContent = `${company}${location}`;
+    meta.textContent = `${company}${location}${workplace}${posted}${experience}${industries}${salary}`;
     listItem.appendChild(meta);
 
     jobList.appendChild(listItem);
@@ -161,8 +245,20 @@ function renderJobs(jobList, jobs) {
 
 function downloadCSV(jobs, statusBadge) {
   try {
-    const header = "Title,Company,Location,Link";
-    const rows = jobs.map((job) => [job.title, job.company, job.location, job.link]
+    const header = "Title,Company,Location,WorkplaceType,PostedAt,ExperienceLevel,Industries,SalaryMin,SalaryMax,SalaryText,Link";
+    const rows = jobs.map((job) => [
+      job.title,
+      job.company,
+      job.location,
+      job.workplaceType,
+      job.postedAt,
+      job.experienceLevel,
+      Array.isArray(job.industries) ? job.industries.join(" | ") : job.industries,
+      job.salaryMin,
+      job.salaryMax,
+      job.salaryText,
+      job.link,
+    ]
       .map((value) => `"${(value ?? "").replaceAll('"', '""')}"`).join(","));
     const csvContent = `data:text/csv;charset=utf-8,${[header, ...rows].join("\n")}`;
 
@@ -198,4 +294,49 @@ function setStatus(statusBadge, state, message) {
   const normalizedState = allowedStates.includes(state) ? state : "ready";
   statusBadge.textContent = message;
   statusBadge.className = `status status--${normalizedState}`;
+}
+
+function inferProfileFromLegacySpeed(speed) {
+  if (!speed) {
+    return "balanced";
+  }
+
+  const numeric = Number(speed);
+  if (Number.isNaN(numeric)) {
+    return "balanced";
+  }
+
+  if (numeric >= 7000) {
+    return "conservative";
+  }
+
+  if (numeric <= 3000) {
+    return "aggressive";
+  }
+
+  return "balanced";
+}
+
+function formatRelativeDate(isoString) {
+  if (!isoString) {
+    return "";
+  }
+
+  const timestamp = Date.parse(isoString);
+  if (Number.isNaN(timestamp)) {
+    return isoString;
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) {
+    return "Bugün";
+  }
+
+  if (diffDays === 1) {
+    return "1 gün önce";
+  }
+
+  return `${diffDays} gün önce`;
 }

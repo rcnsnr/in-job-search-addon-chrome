@@ -1,15 +1,23 @@
+<!-- in-job-search-addon-chrome/popup.html -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <title>LinkedIn Jobs Filter</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 10px; width: 300px; }
-        h3, h4 { margin: 0 0 5px; font-size: 16px; }
-        input, select { width: 100%; margin-bottom: 5px; padding: 5px; }
-        button { width: 100%; margin-bottom: 10px; padding: 5px; cursor: pointer; }
-        ul { list-style: none; padding: 0; }
-        li { margin: 5px 0; }
+        body { font-family: Arial, sans-serif; padding: 10px; width: 320px; }
+        h3, h4 { margin: 0 0 6px; font-size: 16px; }
+        input, select { width: 100%; margin-bottom: 8px; padding: 6px; box-sizing: border-box; }
+        button { width: 100%; margin-bottom: 8px; padding: 6px; cursor: pointer; }
+        ul { list-style: none; padding: 0; margin: 10px 0 0; max-height: 220px; overflow-y: auto; }
+        li { margin: 6px 0; font-size: 14px; }
+        .status { font-size: 13px; margin: 8px 0; padding: 6px; border-radius: 4px; background: #f2f2f2; }
+        .status--loading { background: #fff7e6; color: #8a6d3b; }
+        .status--success { background: #e8f5e9; color: #2e7d32; }
+        .status--error { background: #ffebee; color: #c62828; }
+        .status--empty { background: #e3f2fd; color: #1565c0; }
+        .job-link { color: #0a66c2; text-decoration: none; }
+        .job-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -31,11 +39,12 @@
             <option value="8000">Çok Yavaş (8 saniye)</option>
         </select>
 
-        <button id="save-filters">Filtreleri Kaydet</button>
+        <button id="save-filters">Filtreleri Kaydet ve Tara</button>
         <button id="download-csv">CSV Olarak İndir</button>
         <button id="download-json">JSON Olarak İndir</button>
+        <div id="status" class="status">Hazır</div>
     </div>
-    <ul id="job-list">Yükleniyor...</ul>
+    <ul id="job-list"><li>Henüz sonuç yok.</li></ul>
 
     <script src="popup.js"></script>
 </body>

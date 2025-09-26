@@ -33,7 +33,11 @@
 - **Mesaj akışı**: `popup ↔ service_worker ↔ content` üçlü iletişim protokolünün tanımı.
 - **Depolama**: `chrome.storage.local` + IndexedDB yapılandırması.
 - **Brave uyumluluğu**: Brave deneysel ayarlarında uzantı yüklemesi, izinlerin doğrulanması.
-- **Çıktılar**: Mimari şema (`docs/architecture.md`), bileşen sorumluluk matrisi.
+- **Çıktılar**:
+  - [x] Mimari şema (`docs/architecture.md`) güncellendi.
+  - [x] Araştırma raporu (`docs/research/2025-09-26-findings.md`) oluşturuldu.
+  - [x] `service_worker.js` + `content/jobs.js` temel iş akışı implemente edildi.
+  - [x] `popup` mesajlaşma iyileştirmeleri ve kalıcı depolama entegrasyonu.
 
 ### Faz 2 – LinkedIn Jobs İleri Seçim Motoru (3 Hafta)
 

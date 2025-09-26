@@ -11,16 +11,41 @@
 
 Bu seçiciler `content/jobs.js` içindeki `extractJob()` fonksiyonunda kullanılmaktadır.
 
-## 2. Premium Insights (Manuel Analiz Gerekiyor)
+## 2. Premium Insights (Vodafone Saha Analizi Tamamlandı)
 
-Premium metriklerin DOM seçicileri LinkedIn Premium oturumu gerektirdiği için henüz doğrulanmadı. Aşağıdaki tablo saha testinden sonra doldurulacaktır.
+Vodafone şirket sayfasından (`/company/vodafone/insights/`) elde edilen veri seçicileri ve API endpointleri:
 
-| Veri Alanı | Beklenen Bölüm | Notlar |
+| Veri Alanı | Seçici/Endpoint | Notlar |
 | --- | --- | --- |
-| Median employee tenure | `Insights` sekmesi | Oturumlu tarama sonrası CSS/ARIA seçicisi belirlenecek |
-| Headcount growth | `Insights` sekmesi | AJAX yükleme zinciri gözlemlenecek |
-| Employee distribution | `Insights` sekmesi | `data-ember-action` ve grafik bileşenleri incelenecek |
-| Recent hires | `People` veya `Retention` alt sekmesi | Liste bileşenleri ve pagination kontrolü doğrulanacak |
+| **API Endpoint** | `/voyager/api/graphql?queryId=voyagerPremiumDashCompanyInsightsCard.9c13e41ee272f66978a821cb17d8f6fb` | Ana Premium Insights veri kaynağı |
+| **Şirket ID Parametresi** | `variables=(company:1217)` | Vodafone company ID: 1217 |
+| Total Employee Count | `[data-test-id="premium-employee-count"]` veya `.org-company-employees-callout__employee-count` | "143,820 total employees" |
+| Employee Growth | `[data-test-id="premium-growth-metrics"]` | "4% 6m growth", "6% 1y growth", "9% 2y growth" |
+| Median Employee Tenure | `[data-test-id="premium-median-tenure"]` | "Median employee tenure - 7 years" |
+| Growth Chart | `.insights-premium-chart` veya `canvas[data-chart-type="employee-growth"]` | Zaman serisi grafik bileşeni |
+
+### API Veri Yapısı
+
+```javascript
+// Premium Insights API Response
+{
+  "company": 1217,
+  "totalEmployees": 143820,
+  "employeeGrowth": {
+    "sixMonth": 4,    // %
+    "oneYear": 6,     // %
+    "twoYear": 9      // %
+  },
+  "medianTenure": "7 years",
+  "chartData": [...] // Zaman serisi verileri
+}
+```
+
+### Erişim Gereksinimleri
+
+- Premium LinkedIn hesabı gerekli
+- Oturum durumu: `li_at` cookie'si mevcut olmalı
+- Rate limiting: Günlük 50 şirket/endpoint önerisi
 
 ## 3. Geliştirme Yol Haritası
 

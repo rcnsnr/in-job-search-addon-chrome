@@ -60,6 +60,12 @@
     const companyElement = card.querySelector("a.job-card-container__company-name");
     const locationElement = card.querySelector("ul.job-card-container__metadata li");
     const listedAt = card.querySelector("time");
+    const companyUrl = companyElement?.href ?? "";
+    const companyUrn = companyElement?.getAttribute("data-entity-urn")
+      ?? card.getAttribute("data-entity-urn")
+      ?? "";
+    const companyId = extractCompanyIdFromUrn(companyUrn);
+    const companySlug = extractCompanySlugFromUrl(companyUrl);
 
     return {
       title: titleElement?.textContent?.trim() ?? "",
@@ -71,6 +77,9 @@
       experienceLevel: determineExperienceLevel(card),
       industries: determineIndustries(card),
       ...determineSalary(card),
+      companyUrl,
+      companySlug,
+      companyId,
     };
   }
 
@@ -551,5 +560,36 @@
       return "";
     }
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  }
+
+  function extractCompanySlugFromUrl(url) {
+    if (!url) {
+      return "";
+    }
+
+    try {
+      const parsed = new URL(url);
+      const match = parsed.pathname.match(/\/company\/([^/?#]+)/i);
+      if (match && match[1]) {
+        return match[1].toLowerCase();
+      }
+    } catch (error) {
+      console.debug("Şirket slug çıkarılamadı", error);
+    }
+
+    return "";
+  }
+
+  function extractCompanyIdFromUrn(urn) {
+    if (!urn || typeof urn !== "string") {
+      return "";
+    }
+
+    const match = urn.match(/urn:li:(?:organization|company):(?<id>\d+)/i);
+    if (match?.groups?.id) {
+      return match.groups.id;
+    }
+
+    return "";
   }
 })();

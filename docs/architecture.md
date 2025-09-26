@@ -5,7 +5,7 @@
 
 - **Tarayıcı Uyumluluğu**: Chrome ve Chromium tabanlı Brave tarayıcılarında Manifest V3 gereksinimlerine uyumlu.
 - **Bileşenler**:
-  - `service_worker` (arka plan): Görev planlayıcı, hız profili uygulaması, telemetri kayıt/saklama ve iş kuyruğu yönetimi.
+  - `service_worker` (arka plan): Görev planlayıcı, hız profili uygulaması, telemetri kayıt/saklama, Premium Insights kuyruğu ve iş kuyruğu yönetimi.
   - `content` betikleri: LinkedIn sayfalarından veri çıkarımı, DOM gözlemi, işyeri tipi sınıflandırması.
   - `popup` ve `options` arayüzleri: Kullanıcı etkileşimi, şablon yönetimi, profil seçimi.
   - `storage` katmanı: `chrome.storage.local`, IndexedDB cache.
@@ -19,7 +19,8 @@
 - Throttling stratejileri, rastgele gecikme üretimi, hız profili seçimi.
 - Profil bazlı gecikme (`conservative`, `balanced`, `aggressive`) ve batch sonrası cooldown.
 - Oturum, hata loglama ve `chrome.storage` üzerinden kalıcı durum yönetimi.
-- Günlük bazda telemetri üretimi (`processedToday`, son profil, gecikme aralıkları) ve `chrome.storage.local` altında saklama.
+- Günlük bazda telemetri üretimi (`processedToday`, `premiumCallsToday`, kalan kota) ve `chrome.storage.local` altında saklama.
+- Premium Insights kuyruğu: Filtrelenmiş ilanlardan benzersiz şirket çıkarımı, günlük 50 istek sınırı, CSRf token yönetimi ve GraphQL endpointleri ile veri saklama.
 - İçerik betiklerinin yeniden enjekte edilmesi gerektiğinde `chrome.scripting.executeScript` ile kurtarma.
 
 ### Content Script Modülleri

@@ -393,6 +393,12 @@ function renderTelemetry(container, telemetry, metadata = {}) {
   const lastProcessed = telemetry?.lastProcessedAt
     ? formatRelativeTimestamp(telemetry.lastProcessedAt)
     : "Henüz işlenmedi";
+  const premiumLimit = telemetry?.premiumLimit ?? 50;
+  const premiumUsed = telemetry?.premiumCallsToday ?? 0;
+  const premiumRemaining = telemetry?.premiumRemaining ?? Math.max(0, premiumLimit - premiumUsed);
+  const premiumLast = telemetry?.premiumLastRequestAt
+    ? formatRelativeTimestamp(telemetry.premiumLastRequestAt)
+    : "Henüz istek yok";
 
   container.innerHTML = `
     <h4>Günlük Profil Durumu</h4>
@@ -401,6 +407,11 @@ function renderTelemetry(container, telemetry, metadata = {}) {
     <p class="telemetry__stat"><strong>Son gecikme:</strong> ${delayInfo}</p>
     <p class="telemetry__stat"><strong>Profil aralığı:</strong> ${throttleRange}</p>
     <p class="telemetry__stat"><strong>Son işleme zamanı:</strong> ${lastProcessed}</p>
+    <hr>
+    <p class="telemetry__stat"><strong>Premium toplam kota:</strong> ${premiumLimit}</p>
+    <p class="telemetry__stat"><strong>Premium kullanılan:</strong> ${premiumUsed}</p>
+    <p class="telemetry__stat"><strong>Kalan Premium kota:</strong> ${premiumRemaining}</p>
+    <p class="telemetry__stat"><strong>Son Premium isteği:</strong> ${premiumLast}</p>
   `;
 }
 

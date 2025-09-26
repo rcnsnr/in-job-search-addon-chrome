@@ -13,33 +13,44 @@
 
 ## 2. Bileşen Sorumlulukları
 
-- **Service Worker**
-  - Görev kuyruğu ve durum makinesi yönetimi.
-  - Throttling stratejileri, rastgele gecikme üretimi.
-  - Oturum ve hata loglama.
-- **Content Script Modülleri**
-  - `jobsScraper`: LinkedIn Jobs sayfasında ilan kartlarını çıkarır.
-  - `companyInsightsScraper`: Şirket sayfalarında Premium metrikleri toplar.
-  - `profileSampler` (opsiyonel): Çalışan profili örneklemesi.
-- **Popup UI**
-  - Anlık filtre uygulama, sonuç görselleştirme.
-  - Arama şablonu seçimi ve oluşturma.
-  - Veri dışa aktarımları tetikleme.
-- **Options UI**
-  - Varsayılan hız profilleri, cache ayarları, otomasyon planlayıcı.
-- **Storage Katmanı**
-  - Kalıcı filtre ayarları (`chrome.storage.sync` ile yedekli)
-  - IndexedDB: Şirket içgörü cache’i (timestamp, kaynak bilgisi).
+### Service Worker
+
+- Görev kuyruğu ve durum makinesi yönetimi (`chrome.alarms`, `chrome.runtime` olayları — [kaynak](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle/)).
+- Throttling stratejileri, rastgele gecikme üretimi, hız profili seçimi.
+- Oturum, hata loglama ve `chrome.storage` üzerinden kalıcı durum yönetimi.
+- İçerik betiklerinin yeniden enjekte edilmesi gerektiğinde `chrome.scripting.executeScript` ile kurtarma.
+
+### Content Script Modülleri
+
+- `jobsScraper`: LinkedIn Jobs sayfasında ilan kartlarını çıkarır, temel filtreleme ön işlemini uygular.
+- `companyInsightsScraper`: Şirket sayfalarında Premium metrikleri (örn. `Median employee tenure`) toplar; oturum gereksinimleri için yardım merkezi incelemesi yapılacak.
+- `profileSampler` (opsiyonel): Çalışan profili örneklemesi, takım yapısı analizleri.
+- DOM gözlemleri için `MutationObserver` ve gecikmeli kaydırma simülasyonları.
+
+### Popup UI
+
+- Anlık filtre uygulama, sonuç görselleştirme.
+- Arama şablonu seçimi ve oluşturma.
+- Veri dışa aktarımları tetikleme.
+
+### Options UI
+
+- Varsayılan hız profilleri, cache ayarları, otomasyon planlayıcı.
+
+### Storage Katmanı
+
+- Kalıcı filtre ayarları (`chrome.storage.sync` ile yedekli).
+- IndexedDB: Şirket içgörü cache’i (timestamp, kaynak bilgisi).
 
 ## 3. Veri Akışı
 
 1. Kullanıcı `popup` üzerinden arama şablonunu ve parametrelerini seçer.
-2. `popup` mesajı `service_worker`’a iletir; görev kuyruğuna yeni arama eklenir.
-3. `service_worker`, aktif sekmeye `content` betiğini enjekte eder ve komut verir.
-4. `content` betiği LinkedIn Jobs sayfasını tarar, ham veriyi geri yollar.
-5. Gerekli şirket içgörüleri yoksa `service_worker` yeni sekme açtırarak `companyInsightsScraper`’ı tetikler.
-6. Tüm veriler birleştirilir, filtre motoruna uygulanır ve sonuçlar `popup` arayüzünde gösterilir.
-7. Kullanıcı sonuçları indirir veya otomasyon planlayıcı sonuçları planlı olarak tekrarlar.
+2. `popup`, `service_worker`’a mesaj gönderir; görev kuyruğuna yeni arama eklenir veya anlık tarama tetiklenir.
+3. `service_worker`, aktif sekmede `chrome.tabs.sendMessage` ile komut yürütür; gerekirse `chrome.scripting` kullanarak içerik betiğini yeniden enjekte eder.
+4. `jobsScraper`, DOM’dan ham veriyi toplar, hız profiline uygun gecikmeyi uygular ve sonuçları döner.
+5. Gerekli şirket içgörüleri yoksa `service_worker` şirket sayfasını yeni sekmede açar, `companyInsightsScraper`’ı tetikler ve veriyi cache’e işler.
+6. Tüm veriler `service_worker` tarafında birleştirilir, ileri seviye filtre motoru çalıştırılır ve sonuçlar `popup` arayüzüne iletilir.
+7. Kullanıcı sonuçları indirir veya otomasyon planlayıcı sonuçları planlı olarak tekrarlar; geçmiş kayıtları `chrome.storage`/IndexedDB’de saklanır.
 
 ## 4. Veri Modeli Şemaları
 
@@ -63,6 +74,7 @@
   - Shields/koruma ayarlarının uzantıyı engellemediğinin doğrulanması.
   - `chrome://extensions` üzerinden manuel yükleme yönergeleri dokümante edilir.
 - Servis işçisi ve manifest izinleri Brave özelinde test edilir.
+- Referans: [Brave FAQ - Extensions](https://brave.com/faq/#extensions) Brave’in Chromium tabanı ve uzantı desteğini doğrular.
 
 ## 7. Güvenlik ve Gizlilik Notları
 
@@ -74,3 +86,10 @@
 
 - Her faz sonunda bu doküman güncellenecek.
 - Genişleyen modüller (ör. `analyticsDashboard`, `automationScheduler`) bölümleri eklenerek mimari şemalar güncellenecek.
+
+## 9. Resmi Kaynak Referansları
+
+- Manifest V3 değişimleri: [Chrome Developers – Migrate](https://developer.chrome.com/docs/extensions/develop/migrate/)
+- Servis işçisi kavramı ve yaşam döngüsü: [Chrome Developers – Service Workers](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/) ve [Lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle/)
+- Brave uyumluluğu: [Brave FAQ](https://brave.com/faq/#extensions)
+- LinkedIn filtre alanları: [Company Search API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/company-search?view=li-lms-2025-09)

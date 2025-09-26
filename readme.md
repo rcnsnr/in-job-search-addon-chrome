@@ -94,17 +94,23 @@ Katkıda bulunmak isterseniz pull request'lerinizi bekliyoruz! Projeye yeni öze
 
 1. Projeyi fork'layın.
 2. Yeni bir branch oluşturun:
+
    ```bash
    git checkout -b yeni-ozellik
    ```
+
 3. Değişikliklerinizi yapın ve commit'leyin:
+
    ```bash
    git commit -m "Yeni özellik: ..."
    ```
+
 4. Fork'unuza push'layın:
+
    ```bash
    git push origin yeni-ozellik
    ```
+
 5. Pull request gönderin.
 
 ---
@@ -118,12 +124,15 @@ Eğer sorularınız veya önerileriniz varsa, lütfen [GitHub Issues](https://gi
 ## Ekran Görüntüleri
 
 ### Popup Arayüzü
+
 ![Popup](https://via.placeholder.com/300x150)
 
 ### JSON ve CSV İndirme
+
 ![Download Options](https://via.placeholder.com/300x150)
 
 ### Tarama Sonuçları
+
 ![Filtered Results](https://via.placeholder.com/300x150)
 
 ---

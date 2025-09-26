@@ -3,6 +3,7 @@
 document.addEventListener("DOMContentLoaded", initPopup);
 
 let currentJobs = [];
+const MAX_KEYWORD_ITEMS = 50;
 
 function initPopup() {
   const keywordInput = document.getElementById("keyword-input");
@@ -54,8 +55,20 @@ function initPopup() {
       remoteOnlyInput,
       maxAgeInput,
     );
-    storeFilters(filters, statusBadge);
-    requestJobScan(filters, statusBadge, jobList);
+
+    const validation = validateKeywordFilters(filters, statusBadge);
+    if (!validation.ok) {
+      return;
+    }
+
+    const normalizedFilters = {
+      ...filters,
+      keywordWhitelist: validation.whitelist,
+      keywordBlacklist: validation.blacklist,
+    };
+
+    storeFilters(normalizedFilters, statusBadge);
+    requestJobScan(normalizedFilters, statusBadge, jobList);
   });
 
   downloadCSVButton.addEventListener("click", () => {
@@ -102,7 +115,19 @@ function initPopup() {
         remoteOnlyInput,
         maxAgeInput,
       );
-      storeFilters(filters, statusBadge, false);
+
+      const validation = validateKeywordFilters(filters, statusBadge, { silent: true });
+      if (!validation.ok) {
+        return;
+      }
+
+      const normalizedFilters = {
+        ...filters,
+        keywordWhitelist: validation.whitelist,
+        keywordBlacklist: validation.blacklist,
+      };
+
+      storeFilters(normalizedFilters, statusBadge, false);
     });
   });
 }
@@ -114,7 +139,7 @@ function parseKeywordListValue(rawValue) {
 
   const items = rawValue
     .split(/\r?\n|,/)
-    .map((item) => item.trim())
+    .map((item) => normalizeKeywordValue(item))
     .filter(Boolean);
 
   const seen = new Set();
@@ -136,15 +161,12 @@ function formatKeywordTextarea(value) {
     return "";
   }
 
-  if (Array.isArray(value)) {
-    return value.join("\n");
-  }
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === "string" && value.trim() ? [value] : [];
 
-  if (typeof value === "string") {
-    return value;
-  }
-
-  return "";
+  const sanitized = sanitizeKeywordList(list);
+  return sanitized.items.join("\n");
 }
 
 function collectFilters(
@@ -207,8 +229,13 @@ function loadFilters({
     companyInput.value = filters.company ?? "";
     experienceInput.value = filters.experience ?? "";
     industryInput.value = filters.industry ?? "";
-    keywordWhitelistInput.value = formatKeywordTextarea(filters.keywordWhitelist);
-    keywordBlacklistInput.value = formatKeywordTextarea(filters.keywordBlacklist);
+    const sanitizedFromStorage = validateKeywordFilters({
+      keywordWhitelist: Array.isArray(filters.keywordWhitelist) ? filters.keywordWhitelist : [],
+      keywordBlacklist: Array.isArray(filters.keywordBlacklist) ? filters.keywordBlacklist : [],
+    }, statusBadge, { silent: true, skipLimits: true });
+
+    keywordWhitelistInput.value = formatKeywordTextarea(sanitizedFromStorage.whitelist);
+    keywordBlacklistInput.value = formatKeywordTextarea(sanitizedFromStorage.blacklist);
     minSalaryInput.value = filters.minSalary ?? "";
     profileInput.value = filters.profile ?? inferProfileFromLegacySpeed(filters.speed);
     remoteOnlyInput.checked = Boolean(filters.remoteOnly);

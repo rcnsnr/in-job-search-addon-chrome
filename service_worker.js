@@ -470,6 +470,8 @@ async function fetchAndStorePremiumInsights(company) {
     expiresAt: Date.now() + PREMIUM_INSIGHTS_TTL_MS,
   });
 
+  await ensureStorageCapacity();
+
   return true;
 }
 
@@ -516,6 +518,7 @@ async function resolveCompanyId(company) {
         expiresAt: Date.now() + COMPANY_ID_TTL_MS,
       },
     });
+    await ensureStorageCapacity();
     return resolvedId;
   }
 
@@ -631,6 +634,127 @@ async function persistPremiumInsights(companyKey, payload) {
 
   const key = `${PREMIUM_INSIGHTS_STORAGE_PREFIX}${companyKey}`;
   await chrome.storage.local.set({ [key]: payload });
+}
+
+async function ensureStorageCapacity() {
+  try {
+    const usage = await new Promise((resolve, reject) => {
+      chrome.storage.local.getBytesInUse(null, (bytes) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        resolve(bytes);
+      });
+    });
+
+    if (usage < STORAGE_USAGE_THRESHOLD_BYTES) {
+      return;
+    }
+
+    await cleanupExpiredEntries();
+
+    const afterCleanupUsage = await new Promise((resolve, reject) => {
+      chrome.storage.local.getBytesInUse(null, (bytes) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        resolve(bytes);
+      });
+    });
+
+    if (afterCleanupUsage <= STORAGE_USAGE_TARGET_BYTES) {
+      return;
+    }
+
+    await prunePremiumInsights(afterCleanupUsage);
+  } catch (error) {
+    console.warn("Depolama kapasitesi kontrolü sırasında hata", error);
+  }
+}
+
+async function cleanupExpiredEntries() {
+  const allKeys = await new Promise((resolve, reject) => {
+    chrome.storage.local.get(null, (items) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+        return;
+      }
+      resolve(items);
+    });
+  });
+
+  const removals = [];
+  Object.entries(allKeys).forEach(([key, value]) => {
+    if (key.startsWith(PREMIUM_INSIGHTS_STORAGE_PREFIX)) {
+      if (isExpired(value?.expiresAt)) {
+        removals.push(key);
+      }
+    }
+
+    if (key.startsWith(COMPANY_ID_CACHE_PREFIX)) {
+      if (isExpired(value?.expiresAt)) {
+        removals.push(key);
+      }
+    }
+  });
+
+  if (removals.length > 0) {
+    await chrome.storage.local.remove(removals);
+  }
+}
+
+async function prunePremiumInsights(currentUsage) {
+  const items = await new Promise((resolve, reject) => {
+    chrome.storage.local.get(null, (entries) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+        return;
+      }
+      resolve(entries);
+    });
+  });
+
+  const candidates = Object.entries(items)
+    .filter(([key]) => key.startsWith(PREMIUM_INSIGHTS_STORAGE_PREFIX))
+    .map(([key, value]) => {
+      const fetchedAt = Date.parse(value?.fetchedAt ?? 0) || 0;
+      return {
+        key,
+        fetchedAt,
+      };
+    })
+    .sort((a, b) => a.fetchedAt - b.fetchedAt);
+
+  if (candidates.length === 0) {
+    return;
+  }
+
+  let usage = currentUsage;
+  const toRemove = [];
+
+  for (const candidate of candidates) {
+    if (usage <= STORAGE_USAGE_TARGET_BYTES) {
+      break;
+    }
+
+    toRemove.push(candidate.key);
+    usage -= estimatedEntrySize(items[candidate.key]);
+  }
+
+  if (toRemove.length > 0) {
+    await chrome.storage.local.remove(toRemove);
+  }
+}
+
+function estimatedEntrySize(entry) {
+  try {
+    const serialized = JSON.stringify(entry);
+    return serialized ? serialized.length * 2 : 0;
+  } catch (_error) {
+    return 0;
+  }
 }
 
 function extractPremiumMetrics(payload) {

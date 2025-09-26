@@ -38,6 +38,7 @@
   - [x] Araştırma raporu (`docs/research/2025-09-26-findings.md`) oluşturuldu.
   - [x] `service_worker.js` + `content/jobs.js` temel iş akışı implemente edildi.
   - [x] `popup` mesajlaşma iyileştirmeleri ve kalıcı depolama entegrasyonu.
+  - [x] Kurulum kılavuzu (`docs/install.md`) yayımlandı.
 
 ### Faz 2 – LinkedIn Jobs İleri Seçim Motoru (3 Hafta)
 

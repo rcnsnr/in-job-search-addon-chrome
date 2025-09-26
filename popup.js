@@ -19,6 +19,7 @@ function initPopup() {
   const downloadJSONButton = document.getElementById("download-json");
   const statusBadge = document.getElementById("status");
   const jobList = document.getElementById("job-list");
+  const telemetryContainer = document.getElementById("telemetry");
 
   loadFilters({
     keywordInput,
@@ -32,6 +33,8 @@ function initPopup() {
     maxAgeInput,
     statusBadge,
   });
+
+  refreshTelemetry(telemetryContainer);
 
   saveButton.addEventListener("click", () => {
     const filters = collectFilters(
@@ -70,6 +73,9 @@ function initPopup() {
     keywordInput,
     locationInput,
     companyInput,
+    experienceInput,
+    industryInput,
+    minSalaryInput,
     profileInput,
     remoteOnlyInput,
     maxAgeInput,
@@ -197,6 +203,18 @@ function requestJobScan(filters, statusBadge, jobList) {
 
     const info = `${currentJobs.length} ilan bulundu (${new Date(response.metadata?.processedAt ?? Date.now()).toLocaleTimeString("tr-TR")})`;
     setStatus(statusBadge, "success", info);
+
+    renderTelemetry(
+      document.getElementById("telemetry"),
+      response.metadata?.telemetry,
+      {
+        profile: response.metadata?.profile,
+        delayMs: response.metadata?.delayMs,
+        throttle: response.metadata?.throttle,
+      },
+    );
+
+    refreshTelemetry(document.getElementById("telemetry"));
   });
 }
 
@@ -339,4 +357,94 @@ function formatRelativeDate(isoString) {
   }
 
   return `${diffDays} gün önce`;
+}
+
+function refreshTelemetry(container) {
+  if (!container) {
+    return;
+  }
+
+  chrome.runtime.sendMessage({ action: "getTelemetry" }, (response) => {
+    if (chrome.runtime.lastError) {
+      renderTelemetryError(container, chrome.runtime.lastError.message);
+      return;
+    }
+
+    if (!response?.success) {
+      renderTelemetryError(container, response?.error ?? "Telemetri alınamadı");
+      return;
+    }
+
+    renderTelemetry(container, response.telemetry);
+  });
+}
+
+function renderTelemetry(container, telemetry, metadata = {}) {
+  if (!container) {
+    return;
+  }
+
+  const processedToday = telemetry?.processedToday ?? 0;
+  const lastProfile = metadata.profile ?? telemetry?.lastProfileUsed ?? "Belirsiz";
+  const delayInfo = metadata.delayMs ? `${metadata.delayMs} ms` : "—";
+  const throttleRange = Array.isArray(metadata?.throttle?.delayRangeMs)
+    ? `${metadata.throttle.delayRangeMs[0]}–${metadata.throttle.delayRangeMs[1]} ms`
+    : "—";
+  const lastProcessed = telemetry?.lastProcessedAt
+    ? formatRelativeTimestamp(telemetry.lastProcessedAt)
+    : "Henüz işlenmedi";
+
+  container.innerHTML = `
+    <h4>Günlük Profil Durumu</h4>
+    <p class="telemetry__stat"><strong>Aktif profil:</strong> ${lastProfile}</p>
+    <p class="telemetry__stat"><strong>Bugün işlenen görev:</strong> ${processedToday}</p>
+    <p class="telemetry__stat"><strong>Son gecikme:</strong> ${delayInfo}</p>
+    <p class="telemetry__stat"><strong>Profil aralığı:</strong> ${throttleRange}</p>
+    <p class="telemetry__stat"><strong>Son işleme zamanı:</strong> ${lastProcessed}</p>
+  `;
+}
+
+function renderTelemetryError(container, message) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = `
+    <h4>Günlük Profil Durumu</h4>
+    <p class="telemetry__stat">Telemetri yüklenemedi: ${message}</p>
+  `;
+}
+
+function formatRelativeTimestamp(value) {
+  if (!value) {
+    return "Henüz işlenmedi";
+  }
+
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    return value;
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) {
+    return "Şimdi";
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} dk önce`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} saat önce`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) {
+    return `${diffDays} gün önce`;
+  }
+
+  return new Date(timestamp).toLocaleString("tr-TR");
 }

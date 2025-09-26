@@ -6,6 +6,26 @@
 
   window.__linkedInJobScraperInitialized = true;
 
+  const FUZZY_THRESHOLD = 0.72;
+  const KEYWORD_SYNONYM_GROUPS = [
+    ["software engineer", "software developer", "developer", "yazılım mühendisi"],
+    ["frontend developer", "front-end developer", "frontend engineer", "ui engineer"],
+    ["backend developer", "back-end developer", "backend engineer", "server-side developer"],
+    ["full stack developer", "fullstack developer", "full-stack developer"],
+    ["data scientist", "data science", "ml engineer", "machine learning engineer"],
+    ["product manager", "ürün yöneticisi", "product owner"],
+    ["devops engineer", "devops", "site reliability engineer", "sre", "platform engineer"],
+  ];
+  const EXPERIENCE_SYNONYM_GROUPS = [
+    ["entry level", "junior", "associate"],
+    ["mid level", "mid-level", "mid", "intermediate"],
+    ["senior", "lead", "principal"],
+    ["director", "executive"],
+  ];
+
+  const KEYWORD_SYNONYM_MAP = buildSynonymMap(KEYWORD_SYNONYM_GROUPS);
+  const EXPERIENCE_SYNONYM_MAP = buildSynonymMap(EXPERIENCE_SYNONYM_GROUPS);
+
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request?.action === "collectJobs") {
       try {
@@ -68,50 +88,40 @@
   }
 
   function matchKeywords(title, keywords) {
-    if (!keywords) return true;
-    const list = keywords.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
-    if (list.length === 0) return true;
-    const lower = title.toLowerCase();
-    return list.some((keyword) => lower.includes(keyword));
+    return matchAgainstValue(title, keywords, getKeywordVariants);
   }
 
   function matchLocation(location, filter) {
-    if (!filter) return true;
-    const list = filter.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
-    if (list.length === 0) return true;
-    const lower = location.toLowerCase();
-    return list.some((item) => lower.includes(item));
+    return matchAgainstValue(location, filter);
   }
 
   function matchCompany(company, filter) {
-    if (!filter) return true;
-    const list = filter.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
-    if (list.length === 0) return true;
-    const lower = company.toLowerCase();
-    return list.some((item) => lower.includes(item));
+    return matchAgainstValue(company, filter);
   }
 
   function matchExperience(experienceLevel, filter) {
-    if (!filter) return true;
-    const list = filter.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
-    if (list.length === 0) return true;
-    const lower = (experienceLevel ?? "").toLowerCase();
-    return list.some((item) => lower.includes(item));
+    return matchAgainstValue(experienceLevel, filter, getExperienceVariants);
   }
 
   function matchIndustry(industries, filter) {
     if (!filter) return true;
-    const list = filter.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
-    if (list.length === 0) return true;
+    const terms = parseFilterList(filter);
+    if (terms.length === 0) return true;
 
     const pool = Array.isArray(industries) ? industries : [industries];
     const normalizedPool = pool.filter(Boolean).map((item) => item.toLowerCase());
-
     if (normalizedPool.length === 0) {
       return false;
     }
 
-    return list.some((needle) => normalizedPool.some((target) => target.includes(needle)));
+    const tokenizedPool = normalizedPool.map((value) => tokenize(value));
+
+    return terms.some((term) => {
+      const variants = [term];
+      return normalizedPool.some((value, index) =>
+        variants.some((variant) => fuzzyContains(value, tokenizedPool[index], variant))
+      );
+    });
   }
 
   function matchRemote(job) {
@@ -325,6 +335,168 @@
   function hasSalaryIndicator(text) {
     const normalized = text.toLowerCase();
     return normalized.includes("₺") || normalized.includes("$") || normalized.includes("€") || normalized.includes("salary") || /\d+\s*(k|bin)/i.test(normalized);
+  }
+
+  function matchAgainstValue(target, filter, variantResolver = defaultVariantResolver) {
+    if (!filter) return true;
+    const terms = parseFilterList(filter);
+    if (terms.length === 0) return true;
+
+    const normalizedTarget = (target ?? "").toLowerCase();
+    if (!normalizedTarget) {
+      return false;
+    }
+
+    const tokens = tokenize(normalizedTarget);
+
+    return terms.some((term) => {
+      const variants = variantResolver(term);
+      return variants.some((variant) => fuzzyContains(normalizedTarget, tokens, variant));
+    });
+  }
+
+  function parseFilterList(value) {
+    if (!value) {
+      return [];
+    }
+    return value
+      .split(',')
+      .map((item) => normalizeWhitespace(item).toLowerCase())
+      .filter(Boolean);
+  }
+
+  function getKeywordVariants(term) {
+    const normalized = normalizeWhitespace(term).toLowerCase();
+    const synonyms = KEYWORD_SYNONYM_MAP.get(normalized) ?? [];
+    return Array.from(new Set([normalized, ...synonyms]));
+  }
+
+  function getExperienceVariants(term) {
+    const normalized = normalizeWhitespace(term).toLowerCase();
+    const synonyms = EXPERIENCE_SYNONYM_MAP.get(normalized) ?? [];
+    return Array.from(new Set([normalized, ...synonyms]));
+  }
+
+  function defaultVariantResolver(term) {
+    return [normalizeWhitespace(term).toLowerCase()];
+  }
+
+  function fuzzyContains(text, tokens, needle) {
+    const normalizedNeedle = normalizeWhitespace(needle).toLowerCase();
+    if (!normalizedNeedle) {
+      return false;
+    }
+
+    if (text.includes(normalizedNeedle)) {
+      return true;
+    }
+
+    if (normalizedNeedle.includes(' ')) {
+      const needleTokens = tokenize(normalizedNeedle);
+      if (needleTokens.length === 0) {
+        return false;
+      }
+
+      const windows = slidingWindows(tokens, needleTokens.length);
+      return windows.some((window) => similarity(window, normalizedNeedle) >= FUZZY_THRESHOLD);
+    }
+
+    return tokens.some((token) => similarity(token, normalizedNeedle) >= FUZZY_THRESHOLD);
+  }
+
+  function tokenize(text) {
+    if (!text) {
+      return [];
+    }
+
+    return text
+      .split(/[^\p{L}\p{N}]+/u)
+      .map((token) => token.toLowerCase())
+      .filter(Boolean);
+  }
+
+  function slidingWindows(tokens, windowSize) {
+    const windows = [];
+    if (!Array.isArray(tokens) || windowSize <= 0 || tokens.length < windowSize) {
+      return windows;
+    }
+
+    for (let index = 0; index <= tokens.length - windowSize; index += 1) {
+      windows.push(tokens.slice(index, index + windowSize).join(' '));
+    }
+
+    return windows;
+  }
+
+  function similarity(a, b) {
+    if (!a && !b) {
+      return 1;
+    }
+    if (!a || !b) {
+      return 0;
+    }
+
+    const distance = levenshtein(a, b);
+    const maxLen = Math.max(a.length, b.length);
+    if (maxLen === 0) {
+      return 1;
+    }
+
+    return 1 - distance / maxLen;
+  }
+
+  function levenshtein(a, b) {
+    if (a === b) {
+      return 0;
+    }
+
+    const aLength = a.length;
+    const bLength = b.length;
+
+    if (aLength === 0) {
+      return bLength;
+    }
+    if (bLength === 0) {
+      return aLength;
+    }
+
+    const matrix = Array.from({ length: bLength + 1 }, () => new Array(aLength + 1).fill(0));
+
+    for (let i = 0; i <= bLength; i += 1) {
+      matrix[i][0] = i;
+    }
+    for (let j = 0; j <= aLength; j += 1) {
+      matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= bLength; i += 1) {
+      for (let j = 1; j <= aLength; j += 1) {
+        const cost = b.charAt(i - 1) === a.charAt(j - 1) ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost,
+        );
+      }
+    }
+
+    return matrix[bLength][aLength];
+  }
+
+  function buildSynonymMap(groups) {
+    const map = new Map();
+
+    groups.forEach((group) => {
+      const normalizedGroup = group.map((term) => normalizeWhitespace(term).toLowerCase());
+      normalizedGroup.forEach((term) => {
+        map.set(
+          term,
+          normalizedGroup.filter((item) => item !== term),
+        );
+      });
+    });
+
+    return map;
   }
 
   function parseSalary(text) {
